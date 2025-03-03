@@ -1,0 +1,13 @@
+source sif_env/bin/activate
+jupyter lab
+
+############
+africa = h.groups['africa']
+africa.variables
+#africa.dimensions
+#africa.groups
+#africa.__dict__
+#lon = africa.variables['longitude_bounds'][:]
+#lat = africa.variables['latitude_bounds'][:]
+#lon, lat # bounds: around the river Nile
+africa.variables['Reflectance_wl'][0,1,224,400]
