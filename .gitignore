@@ -1,5 +1,7 @@
-sif_env
+.sif_env/
 sif_env/
 env/
 __pycache__/
 *.ipynb_checkpoints/
+Data/
+
