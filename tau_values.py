@@ -43,7 +43,7 @@ wl_ground_pixel_224 = wl_per_gp_sahara_b[223, :]  # select ground pixel 224 (ind
 wl = wl_ground_pixel_224 
 retrievalWindow = (734, 758) # retrieval wavelength window [nm]
 windowsOfNoAbsorption = ((712, 713), (748, 757), (775, 785)) # windows for no atmospheric absorption [nm]
-sb_order = 5 # order of polynomial fit of surface reflectivity (barren)
+sb_order = 4 # order of polynomial fit of surface reflectivity (barren)
 ind    = indexate(wl, retrievalWindow)
 ind_na = indexate(wl, windowsOfNoAbsorption)
 ref_na = africa.variables["Reflectance"][0, :, 223, ind_na].data.tolist()
@@ -84,13 +84,13 @@ reflectance_matrix1 = africa1.variables['Reflectance'][0, scanline_nocloud1, 223
 mu_value =np.concatenate((mu_matrix, mu_matrix1), axis = 0)
 mu_0_value = np.concatenate((mu_0_matrix, mu_0_matrix1), axis = 0)
 reflectance_value = np.concatenate((reflectance_matrix, reflectance_matrix1), axis = 0)
-angle_value = (mu_value + mu_0_value)/mu_value*mu_0_value
-tau_value = -np.log(reflectance_value/albedo_value)/angle_value
+angle_value = np.reciprocal(mu_value) + np.reciprocal(mu_0_value)
+tau_value = -np.log(reflectance_value/albedo_value)
 
 plt.figure()
 for idx, i  in enumerate(nocloud_value):
     plt.plot(wl[ind], tau_value[idx],color='blue', alpha=0.1, linewidth=0.1)
-    plt.xlabel("Wavelength - nm")
+    plt.xlabel("Wavelength (nm)")
     plt.ylabel("Optical depth (τ)")
     plt.savefig("tau_value.png")
 plt.close()
@@ -133,8 +133,8 @@ scanline_nocloud2 = filter_scanlines(amazon, cloud_fraction_threshold=0.4, refle
 sc_nc2 = len(scanline_nocloud2)
 print(sc_nc2)
 
-
-ref_na2 = amazon.variables["Reflectance"][0, scanline_nocloud2, 223, ind_na].data.tolist()
+sb_order = 4
+ref_na2 = amazon.variables["Reflectance"][0,:, 223, ind_na].data.tolist()
 
 #for each scanline model the albedo with the noabsobtion window of reflectance
 surf_alb2 = np.zeros((sc_nc2, 194))

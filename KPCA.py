@@ -91,7 +91,7 @@ print(f_matrix.shape)
 n = len(f_matrix)
 SIF_values_per_scanline_m_3 = []
 # Loop over different values of m
-m_values = [2, 3, 4, 5]  # Example values for m
+m_values = [1, 2, 3, 4]  # Example values for m
 SIF_values_per_m = {}
 
 for m in m_values:
@@ -100,22 +100,24 @@ for m in m_values:
         reflectance_observed = amazon.variables['Reflectance'][0, i, 223, ind].data
 
         def reflectance_model(lam, *params):
-            a = np.array(params[0:m])
-            b = np.array(params[m:n+m])
-            c = params[n+m]
+            a = np.array(params[0:m+1])
+            b = np.array(params[m+1:n+m+1])
+            c = params[n+m+1]
             attenuation = np.dot(b, f_matrix)
-            poly_term = sum(a[j] * lam**j for j in range(m))
+            poly_term = sum(a[j] * lam**j for j in range(m+1))
             baseline = poly_term * np.exp(-attenuation)
             gaussian = np.exp(-0.5 * ((lam - 737) / 34) ** 2)
             geom_factor = (1 / mu_matrix2[pixel_index]) / ((1 / mu_matrix2[pixel_index]) + (1 / mu_0_matrix2[pixel_index]))
             fluorescence = (np.pi * c * gaussian / (mu_0_matrix2[pixel_index] * irradiance_value)) * np.exp(-attenuation * geom_factor)
             return baseline + fluorescence
 
-        p0 = [0.5] * m + [0.5] * n + [0.5]
+        p0 = [0.5] * (m+1) + [0.5] * n + [0.5]
         popt, pcov = curve_fit(reflectance_model, wl[ind], reflectance_observed, p0=p0)
         SIF_values_per_scanline.append(popt[-1])
 
-        if m == 3 and pixel_index == 100:
+        if m == 2 and pixel_index == 100:
+            print("Fitted parameters:")
+            print(popt)
             # ---- Plot the results ----
             R_fit = reflectance_model(wl[ind], *popt)
 
@@ -182,6 +184,7 @@ for m in m_values:
             plt.legend()
             plt.savefig(f"SIF_values_m_{m}_KPCA.png")
             plt.close()
+            print(f"Mean SIF value for m={m}: {np.mean(SIF_values)}")
         else:
             print(f"Warning: No SIF values found for m={m}")
   

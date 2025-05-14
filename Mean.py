@@ -5,6 +5,7 @@ from output_variables import *
 import netCDF4 as nc
 import os
 from scipy.stats import gaussian_kde
+import math
 
 #Import the data
 h2 = nc.Dataset('Data/S5P_OFFL_L1C_SIFTRS_20240206T172817_20240206T173755_32735_93_010100_20250228T104827_irr.nc')
@@ -28,12 +29,12 @@ ind = np.load('output_variables/ind.npy')
 
 
 # Plot
-tau_mean = tau_value.mean(axis = 0)
+tau_mean = np.mean(tau_value, axis = 0)
 plt.figure()
 plt.plot(wl[ind], tau_mean)
 plt.xlabel('Wavelength (nm)')
 plt.ylabel('Mean τ')
-plt.savefig("Mean_tau.png")  
+plt.savefig("pic_mean/Mean_tau.png")  
 plt.close()
 
 # Compute mode at each wavelength using KDE
@@ -43,12 +44,12 @@ for i in range(tau_value.shape[1]):
     x = np.linspace(np.min(tau_value[:, i]), np.max(tau_value[:, i]), 100)
     mode_spectrum[i] = x[np.argmax(kde.pdf(x))]  # Mode = peak of KDE
 
+
 tau_median = np.median(tau_value, axis=0)
 # Compute explained variance for the three methods
-explained_variance_mean = 1 - np.var(tau_value - tau_mean, axis=0) / np.var(tau_value, axis=0)
-explained_variance_median = 1 - np.var(tau_value - tau_median, axis=0) / np.var(tau_value, axis=0)
-explained_variance_KDE = 1 - np.var(tau_value - mode_spectrum, axis=0) / np.var(tau_value, axis=0)
-
+explained_variance_mean = 1 - (np.var(tau_value - tau_mean) / np.var(tau_value))
+explained_variance_median = 1 - np.var(tau_value - tau_median) / np.var(tau_value)
+explained_variance_KDE = 1 - np.var(tau_value - mode_spectrum) / np.var(tau_value)
 # Take the mean of explained variance across all wavelengths
 explained_variance_mean = np.mean(explained_variance_mean)
 explained_variance_median = np.mean(explained_variance_median)
@@ -80,7 +81,20 @@ ax.set_xlabel("Wavelength (nm)")
 ax.set_ylabel("Tau value")
 ax.legend()
 ax.grid(True)
-plt.savefig("Mean_tau_with_explained_variance.png")
+plt.savefig("pic_mean/Mean_tau_with_explained_variance.png")
+plt.close()
+
+tau_tile = np.tile(tau_mean, (len(scanline_nocloud2), 1))
+transmitance_matrix = np.exp(-tau_tile)
+up_transmitance_matrix = np.exp(-tau_tile*(np.reciprocal(mu_matrix2)/(np.reciprocal(mu_matrix2) + np.reciprocal(mu_0_matrix2))))
+irradiance_matrix = np.tile(irradiance_value, (len(scanline_nocloud2), 1))
+#this multiplication is not precisely reflect because of really small computer error as in they are not exact values 
+diff = reflectance_matrix2 - surf_alb2*transmitance_matrix
+I = irradiance_matrix*mu_0_matrix2*diff/(up_transmitance_matrix*math.pi) #this I is really I/E_0 
+plt.plot(wl[ind],I.mean(axis=0))
+plt.xlabel('Wavelength (nm)')
+plt.ylabel("SIF - mW m⁻² sr⁻¹ nm⁻¹")
+plt.savefig("pic_mean/SIF_from_equation.png")
 plt.close()
 
 
@@ -89,7 +103,7 @@ print(f_matrix.shape)
 n = len(f_matrix)
 SIF_values_per_scanline_m_3 = []
 # Loop over different values of m
-m_values = [2, 3, 4, 5]  # Example values for m
+m_values = [1, 2, 3, 4]  # Example values for m
 SIF_values_per_m = {}
 
 for m in m_values:
@@ -98,22 +112,24 @@ for m in m_values:
         reflectance_observed = amazon.variables['Reflectance'][0, i, 223, ind].data
 
         def reflectance_model(lam, *params):
-            a = np.array(params[0:m])
-            b = np.array(params[m:n+m])
-            c = params[n+m]
+            a = np.array(params[0:m+1])
+            b = np.array(params[m+1:n+m+1])
+            c = params[n+m+1]
             attenuation = np.dot(b, f_matrix)
-            poly_term = sum(a[j] * lam**j for j in range(m))
+            poly_term = sum(a[j] * lam**j for j in range(m+1))
             baseline = poly_term * np.exp(-attenuation)
             gaussian = np.exp(-0.5 * ((lam - 737) / 34) ** 2)
             geom_factor = (1 / mu_matrix2[pixel_index]) / ((1 / mu_matrix2[pixel_index]) + (1 / mu_0_matrix2[pixel_index]))
             fluorescence = (np.pi * c * gaussian / (mu_0_matrix2[pixel_index] * irradiance_value)) * np.exp(-attenuation * geom_factor)
             return baseline + fluorescence
-
-        p0 = [0.5] * m + [0.5] * n + [0.5]
+        
+        p0 = [0.5] * (m+1) + [0.5] * n + [0.5]
         popt, pcov = curve_fit(reflectance_model, wl[ind], reflectance_observed, p0=p0)
         SIF_values_per_scanline.append(popt[-1])
 
         if m == 3 and pixel_index == 100:
+            print("Fitted parameters:")
+            print(popt)
             # ---- Plot the results ----
             R_fit = reflectance_model(wl[ind], *popt)
 
@@ -124,7 +140,7 @@ for m in m_values:
             plt.xlabel("Wavelength (nm)")
             plt.ylabel("Reflectance")
             plt.legend()
-            plt.savefig("Mean_fit_reflectance_m3")
+            plt.savefig("pic_mean/Mean_fit_reflectance_m3")
             plt.close()
             #Plot transmittance observed and modelled
             transmitance_tropomi = np.exp(-(np.reciprocal(mu_matrix2[100]) + np.reciprocal(mu_0_matrix2[100]))*tau2[100])
@@ -141,7 +157,7 @@ for m in m_values:
             plt.xlabel('Wavelength')
             plt.ylabel('Value')
             plt.legend(loc="best")
-            plt.savefig("Mean_fit_transmitance_m3")
+            plt.savefig("pic_mean/Mean_fit_transmitance_m3")
             plt.close()
             # Pre-compute the Gaussian (same for every pixel if center and width are fixed)
             gaussian_full = np.exp(-0.5 * ((wl[ind] - 737) / 34) ** 2)
@@ -150,8 +166,8 @@ for m in m_values:
             plt.figure()# For demonstration, let's plot the c*Gaussian curve for the first pixel in the scanline.
             plt.plot(wl[ind], popt[-1]*gaussian_full, color='green')
             plt.xlabel("Wavelength (nm)")
-            plt.ylabel("SIF Amplitude - mW m⁻² nm⁻¹")
-            plt.savefig("Mean_fit_SIF_m3")
+            plt.ylabel("SIF Amplitude - mW m⁻² sr⁻¹ nm⁻¹")
+            plt.savefig("pic_mean/Mean_fit_SIF_m3")
             plt.close()
 
             # Compute the baseline and attenuation for plotting
@@ -164,7 +180,7 @@ for m in m_values:
             plt.xlabel("Wavelength (nm)")
             plt.ylabel("Value")
             plt.legend()
-            plt.savefig("Mean_fit_baseline")
+            plt.savefig("pic_mean/Mean_fit_baseline")
             plt.close()
       
     SIF_values_per_m[m] = SIF_values_per_scanline
@@ -176,10 +192,11 @@ for m in m_values:
             plt.figure()
             plt.plot(SIF_values, label=f"m={m}")
             plt.xlabel("Scanline Index - Excluding error") 
-            plt.ylabel("SIF Value - mW m⁻² nm⁻¹")
+            plt.ylabel("SIF Value -  mW m⁻² sr⁻¹ nm⁻¹")
             plt.legend()
-            plt.savefig(f"SIF_values_m_{m}_Mean.png")
+            plt.savefig(f"pic_mean/SIF_values_m_{m}_Mean.png")
             plt.close()
+            print(f"Mean SIF value for m={m}: {np.mean(SIF_values)}")
         else:
             print(f"Warning: No SIF values found for m={m}")
   
@@ -227,7 +244,7 @@ for pixel_index, i in enumerate(scanline_nocloud2):
         plt.plot(wl[ind], R_fit, label="Fitted Model Reflectance")
         plt.xlabel("Wavelength (nm)")
         plt.ylabel("Reflectance")
-        plt.savefig("Mean_fit_reflectance")
+        plt.savefig("pic_mean/Mean_fit_reflectance")
         plt.legend()
         plt.close()
         
@@ -245,7 +262,7 @@ for pixel_index, i in enumerate(scanline_nocloud2):
         plt.xlabel('Wavelength')
         plt.ylabel('Value')
         plt.legend(loc="best")
-        plt.savefig("Mean_fit_transmitance")
+        plt.savefig("pic_mean/Mean_fit_transmitance")
         plt.close()
         
         # Pre-compute the Gaussian (same for every pixel if center and width are fixed)
@@ -255,15 +272,15 @@ for pixel_index, i in enumerate(scanline_nocloud2):
         plt.figure()
         plt.plot(wl[ind], popt[-1]*gaussian_full, color='green')
         plt.xlabel("Wavelength (nm)")
-        plt.ylabel("SIF Amplitude - mW m⁻² nm⁻¹")
-        plt.savefig("Mean_fit_SIF")
+        plt.ylabel("SIF Amplitude -  mW m⁻² sr⁻¹ nm⁻¹")
+        plt.savefig("pic_mean/Mean_fit_SIF")
         plt.close()
         
 plt.figure()
 plt.plot(SIF_values_per_scanline_A)
 plt.xlabel("Scanline Index - Excluding error") 
-plt.ylabel("SIF Value - mW m⁻² nm⁻¹")
-plt.savefig("Mean_SIF_values_per_scanline_A.png")
+plt.ylabel("SIF Value -  mW m⁻² sr⁻¹ nm⁻¹")
+plt.savefig("pic_mean/Mean_SIF_values_per_scanline_A.png")
 plt.close()
 print(np.mean(SIF_values_per_scanline_A))  
 
