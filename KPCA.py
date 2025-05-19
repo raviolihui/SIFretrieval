@@ -5,6 +5,7 @@ from scipy.optimize import curve_fit
 from output_variables import *
 import netCDF4 as nc
 import os
+from sklearn.metrics.pairwise import pairwise_distances
 
 #Import the data
 h2 = nc.Dataset('Data/S5P_OFFL_L1C_SIFTRS_20240206T172817_20240206T173755_32735_93_010100_20250228T104827_irr.nc')
@@ -26,65 +27,65 @@ tau2 = np.load('output_variables/tau2.npy')
 wl = np.load('output_variables/wl.npy')
 ind = np.load('output_variables/ind.npy')
 
-
-kpca = KernelPCA(kernel='rbf', fit_inverse_transform=True, n_components=None, gamma = 30, alpha = 0.01)  # use max components
-print(kpca.fit(tau_value))
+dists = pairwise_distances(tau_value)
+median_dist = np.median(dists)
+gamma_guess = 1 / (2 * median_dist**2)
+print(f"Gamma guess: {gamma_guess}")
+print(tau_value.shape)
+kpca = KernelPCA(kernel='rbf', fit_inverse_transform=False, n_components=None, gamma = gamma_guess,)  # not using inverse transform 
+tau_reduced = kpca.fit(tau_value)
 score_kernel_pca = kpca.transform(tau_value)
+eigenvectors = np.dot(tau_value.T, kpca.eigenvectors_) 
 
-plt.figure()
-plt.plot(kpca.eigenvalues_)
+eigenvectors = tau_value.T @ kpca.eigenvectors_
+print(eigenvectors.shape)
+eigenvalues = kpca.eigenvalues_
+# Compute the projection of the original data onto the eigenvectors using X_transformed_fit_
+sklearn_proj = kpca.transform(tau_value)[:, 10]
+print(sklearn_proj.shape)
 
-plt.title("Principal component and their eigenvalues")
-plt.xlabel("nth principal component")
-plt.ylabel("eigenvalue magnitude")
-plt.savefig("eigenvalues_KPCA.png")
-plt.close()
 
 plt.figure()
 plt.scatter(score_kernel_pca[:,0],score_kernel_pca[:,1] ,cmap='viridis')
 plt.title("Projection onto PCs (kernel)")
 plt.xlabel("1st principal component")
 plt.ylabel("2nd principal component")
-plt.savefig("projection_KPC.png")
+plt.savefig("pic_kpca/projection_KPC.png")
 plt.close()
 
-tau_reduced = kpca.fit(tau_value)
-tau_centered = tau_value - np.mean(tau_value, axis=0)  # Center the data
-eigenvectors = np.dot(tau_centered.T, kpca.eigenvectors_ ) # Shape (194, 195)
-
-# Compute eigenvalues and eigenvectors in the original space
-eigenvalues = kpca.eigenvalues_
 
 # Sort eigenvalues in descending order and get top 10 indices
-sorted_indices = np.argsort(eigenvalues)[::-1][:10]
-top3_eigenvalues = eigenvalues[sorted_indices]
-
-# Plot top 10 eigenvalues
+explained_variance_ratio = eigenvalues / np.sum(eigenvalues)
+sorted_indices = np.argsort(explained_variance_ratio)[::-1][:10]
+top10_PC = explained_variance_ratio[sorted_indices]
+print(top10_PC.shape)
+# Compute the cumulative explained variance of the first 10 components
+cumulative_explained_variance = np.cumsum(explained_variance_ratio[sorted_indices[:10]])
+print("Cumulative explained variance of the first 10 components:", cumulative_explained_variance)
 plt.figure()
-plt.bar(range(10), top3_eigenvalues, color='skyblue')
-plt.title("Top 10 Eigenvalues from Kernel PCA")
+plt.bar(range(10), top10_PC, color='skyblue')
 plt.xlabel("Component Index")
-plt.ylabel("Eigenvalue")
+plt.ylabel("Explained Variance Ratio")
 plt.xticks(range(10), range(1,11))
 plt.grid(axis='y', linestyle='--')
-plt.savefig("10_PC_KPCA.png")
+plt.savefig("pic_kpca/10_PC_KPCA.png")
 plt.close()
 
 
 plt.figure()
 components = []
-# Plot the top 10 eigenvectors (as 194-dimensional vectors)
 for i, idx in enumerate(sorted_indices):
     components.append(eigenvectors[:, idx])
     if i in [0, 1, 2]:
         plt.figure(figsize=(12, 4))
         plt.bar(range(194), eigenvectors[:, idx])
-        plt.title(f"Eigenvector {i+1} (λ = {eigenvalues[idx]:.2f})")
+        plt.title(f"Eigenvector {i+1} (λ = {explained_variance_ratio[idx]:.2f})")
         plt.xlabel("Feature Index")
         plt.ylabel("Component Value")
         plt.grid(axis='y', linestyle='--')
-        plt.savefig(f"PC_{i+1}_KPCA.png")
+        plt.savefig(f"pic_kpca/Dual_PC_{i+1}_KPCA.png")
         plt.close()
+
 
 f_matrix = np.array(components)
 print(f_matrix.shape)
@@ -128,7 +129,7 @@ for m in m_values:
             plt.xlabel("Wavelength (nm)")
             plt.ylabel("Reflectance")
             plt.legend()
-            plt.savefig("KPCA_fit_reflectance_m3")
+            plt.savefig("pic_kpca/KPCA_fit_reflectance_m2")
             plt.close()
             #Plot transmittance observed and modelled
             transmitance_tropomi = np.exp(-(np.reciprocal(mu_matrix2[100]) + np.reciprocal(mu_0_matrix2[100]))*tau2[100])
@@ -145,7 +146,7 @@ for m in m_values:
             plt.xlabel('Wavelength')
             plt.ylabel('Value')
             plt.legend(loc="best")
-            plt.savefig("KPCA_fit_transmitance_m3")
+            plt.savefig("pic_kpca/KPCA_fit_transmitance_m2")
             plt.close()
             # Pre-compute the Gaussian (same for every pixel if center and width are fixed)
             gaussian_full = np.exp(-0.5 * ((wl[ind] - 737) / 34) ** 2)
@@ -155,11 +156,11 @@ for m in m_values:
             plt.plot(wl[ind], popt[-1]*gaussian_full, color='green')
             plt.xlabel("Wavelength (nm)")
             plt.ylabel("SIF Amplitude - mW m⁻² nm⁻¹")
-            plt.savefig("KPCA_fit_SIF_m3")
+            plt.savefig("pic_kpca/KPCA_fit_SIF_m2")
             plt.close()
 
             # Compute the baseline and attenuation for plotting
-            baseline_fit = sum(popt[j] * wl[ind]**j for j in range(m)) * np.exp(-attenuation_fit)
+            baseline_fit = sum(popt[j] * wl[ind]**j for j in range(m+1)) * np.exp(-attenuation_fit)
             fluorescence_fit = (np.pi * popt[-1] * gaussian_full / (mu_0_matrix2[100] * irradiance_value)) * np.exp(-attenuation_fit * geom_factor)
             # Plot the baseline
             plt.figure()
@@ -168,7 +169,7 @@ for m in m_values:
             plt.xlabel("Wavelength (nm)")
             plt.ylabel("Value")
             plt.legend()
-            plt.savefig("KPCA_fit_baseline")
+            plt.savefig("pic_kpca/KPCA_fit_baseline")
             plt.close()
       
     SIF_values_per_m[m] = SIF_values_per_scanline
@@ -182,7 +183,7 @@ for m in m_values:
             plt.xlabel("Scanline Index - Excluding error") 
             plt.ylabel("SIF Value - mW m⁻² nm⁻¹")
             plt.legend()
-            plt.savefig(f"SIF_values_m_{m}_KPCA.png")
+            plt.savefig(f"pic_kpca/SIF_values_m_{m}_KPCA.png")
             plt.close()
             print(f"Mean SIF value for m={m}: {np.mean(SIF_values)}")
         else:
@@ -232,7 +233,7 @@ for pixel_index, i in enumerate(scanline_nocloud2):
         plt.plot(wl[ind], R_fit, label="Fitted Model Reflectance")
         plt.xlabel("Wavelength (nm)")
         plt.ylabel("Reflectance")
-        plt.savefig("KPCA_fit_reflectance")
+        plt.savefig("pic_kpca/KPCA_fit_reflectance")
         plt.legend()
         plt.close()
         
@@ -250,7 +251,7 @@ for pixel_index, i in enumerate(scanline_nocloud2):
         plt.xlabel('Wavelength')
         plt.ylabel('Value')
         plt.legend(loc="best")
-        plt.savefig("KPCA_fit_transmitance")
+        plt.savefig("pic_kpca/KPCA_fit_transmitance")
         plt.close()
         
         # Pre-compute the Gaussian (same for every pixel if center and width are fixed)
@@ -261,14 +262,14 @@ for pixel_index, i in enumerate(scanline_nocloud2):
         plt.plot(wl[ind], popt[-1]*gaussian_full, color='green')
         plt.xlabel("Wavelength (nm)")
         plt.ylabel("SIF Amplitude - mW m⁻² nm⁻¹")
-        plt.savefig("KPCA_fit_SIF")
+        plt.savefig("pic_kpca/KPCA_fit_SIF")
         plt.close()
         
 plt.figure()
 plt.plot(SIF_values_per_scanline_A)
 plt.xlabel("Scanline Index - Excluding error") 
 plt.ylabel("SIF Value - mW m⁻² nm⁻¹")
-plt.savefig("KPCA_SIF_values_per_scanline_A.png")
+plt.savefig("pic_kpca/KPCA_SIF_values_per_scanline_A.png")
 plt.close()
 print(np.mean(SIF_values_per_scanline_A))  
 

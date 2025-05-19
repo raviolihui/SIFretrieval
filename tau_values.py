@@ -129,12 +129,13 @@ print(irradiance_value.shape)
 h2 = nc.Dataset('Data/S5P_OFFL_L1C_SIFTRS_20240206T172817_20240206T173755_32735_93_010100_20250228T104827_irr.nc')
 amazon = h2.groups['amazon']
 
-scanline_nocloud2 = filter_scanlines(amazon, cloud_fraction_threshold=0.4, reflectance_err_threshold=80, sza_threshold=75, vza_threshold=65)
+#We can reomove clouds and errors if desired, we are for now using all pixels 
+scanline_nocloud2 = filter_scanlines(amazon, cloud_fraction_threshold=1, reflectance_err_threshold=100, sza_threshold=75, vza_threshold=65)
 sc_nc2 = len(scanline_nocloud2)
 print(sc_nc2)
 
 sb_order = 4
-ref_na2 = amazon.variables["Reflectance"][0,:, 223, ind_na].data.tolist()
+ref_na2 = amazon.variables["Reflectance"][0, :, 223, ind_na].data.tolist()
 
 #for each scanline model the albedo with the noabsobtion window of reflectance
 surf_alb2 = np.zeros((sc_nc2, 194))

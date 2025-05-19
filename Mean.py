@@ -127,7 +127,7 @@ for m in m_values:
         popt, pcov = curve_fit(reflectance_model, wl[ind], reflectance_observed, p0=p0)
         SIF_values_per_scanline.append(popt[-1])
 
-        if m == 3 and pixel_index == 100:
+        if m == 2 and pixel_index == 100:
             print("Fitted parameters:")
             print(popt)
             # ---- Plot the results ----
@@ -150,15 +150,6 @@ for m in m_values:
             attenuation_fit = np.dot(b_fit, f_matrix)  # shape: (number of wavelengths,)
             geom_factor = (1 / mu_matrix2[100]) / ((1 / mu_matrix2[100]) + (1 / mu_0_matrix2[100]))
 
-            plt.figure()
-            transmitance_modelled = np.exp(-(np.reciprocal(mu_matrix2[100]) + np.reciprocal(mu_0_matrix2[100]))*attenuation_fit)
-            plt.plot(wl[ind],transmitance_tropomi , label="Observed transmitance")
-            plt.plot(wl[ind], transmitance_modelled, label="Modelled transmitance")
-            plt.xlabel('Wavelength')
-            plt.ylabel('Value')
-            plt.legend(loc="best")
-            plt.savefig("pic_mean/Mean_fit_transmitance_m3")
-            plt.close()
             # Pre-compute the Gaussian (same for every pixel if center and width are fixed)
             gaussian_full = np.exp(-0.5 * ((wl[ind] - 737) / 34) ** 2)
             
@@ -171,7 +162,7 @@ for m in m_values:
             plt.close()
 
             # Compute the baseline and attenuation for plotting
-            baseline_fit = sum(popt[j] * wl[ind]**j for j in range(m)) * np.exp(-attenuation_fit)
+            baseline_fit = sum(popt[j] * wl[ind]**j for j in range(m+1)) * np.exp(-attenuation_fit)
             fluorescence_fit = (np.pi * popt[-1] * gaussian_full / (mu_0_matrix2[100] * irradiance_value)) * np.exp(-attenuation_fit * geom_factor)
             # Plot the baseline
             plt.figure()
@@ -255,15 +246,6 @@ for pixel_index, i in enumerate(scanline_nocloud2):
         # Compute the attenuation: dot product of b_fit with f_matrix (each column of f_matrix corresponds to a wavelength)
         attenuation_fit = np.dot(b_fit, f_matrix)  # shape: (number of wavelengths,)
         
-        plt.figure()
-        transmitance_modelled = np.exp(-(np.reciprocal(mu_matrix2[100]) + np.reciprocal(mu_0_matrix2[100]))*attenuation_fit)
-        plt.plot(wl[ind],transmitance_tropomi , label="Observed transmitance")
-        plt.plot(wl[ind], transmitance_modelled, label="Modelled transmitance")
-        plt.xlabel('Wavelength')
-        plt.ylabel('Value')
-        plt.legend(loc="best")
-        plt.savefig("pic_mean/Mean_fit_transmitance")
-        plt.close()
         
         # Pre-compute the Gaussian (same for every pixel if center and width are fixed)
         gaussian_full = np.exp(-0.5 * ((wl[ind] - 737) / 34) ** 2)
@@ -285,6 +267,8 @@ plt.close()
 print(np.mean(SIF_values_per_scanline_A))  
 
 
+
+
 #Save the SIF values
 output_dir = "Mean_SIF_values"
 os.makedirs(output_dir, exist_ok=True)
@@ -294,3 +278,5 @@ for m, SIF_values in SIF_values_per_m.items():
 
 # Save the SIF values per scanline A
 np.save(os.path.join(output_dir, "SIF_values_per_scanline_A.npy"), SIF_values_per_scanline_A)
+
+

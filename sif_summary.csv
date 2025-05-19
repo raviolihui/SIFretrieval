@@ -1,19 +1,19 @@
 Tau Method,Albedo Method,Region,Avg SIF in mW m⁻² nm⁻¹,Std Dev
-Mean,"Modeled albedo, m=3",Sahara,-1.2947,0.7203
-Mean,"Modeled albedo, m=2",Sahara,-3.0541,1.3356
-Mean,"Modeled albedo, m=4",Sahara,-4.7086,5.7679
-Mean,"Modeled albedo, m=5",Sahara,-8.4645,6.1661
-Mean,Fixed albedo,Sahara,-0.4782,0.1658
+Mean,"Modeled albedo, m=3",Sahara,-1.3048,0.915
+Mean,"Modeled albedo, m=2",Sahara,-3.1117,1.5409
+Mean,"Modeled albedo, m=4",Sahara,-4.3457,5.6354
+Mean,"Modeled albedo, m=5",Sahara,12.9039,7.4436
+Mean,Fixed albedo,Sahara,-11.6597,70.9611
 PCA,Fixed albedo,Sahara,0.001,0.007
-PCA-n=10,"Modeled albedo, m=1",Sahara,2.0924,1.7391
-PCA-n=10,"Modeled albedo, m=2",Sahara,1.218,1.185
-PCA-n=10,"Modeled albedo, m=3",Sahara,1.9503,1.1145
-PCA-n=10,"Modeled albedo, m=4",Sahara,140.8707,98.3103
-PCA-n=20,"Modeled albedo, m=2",Sahara,1.7214,1.1397
+PCA-n=10,"Modeled albedo, m=1",Sahara,1.7941,1.9324
+PCA-n=10,"Modeled albedo, m=2",Sahara,0.9919,1.3641
+PCA-n=10,"Modeled albedo, m=3",Sahara,1.7762,1.3561
+PCA-n=10,"Modeled albedo, m=4",Sahara,154.1387,123.0767
+PCA-n=20,"Modeled albedo, m=2",Sahara,1.3657,1.2962
 PCA-n=50,"Modeled albedo, m=2",Sahara,2.9177,11.3744
-KPCA,Fixed albedo,Sahara,-0.0105,0.0096
+KPCA,Fixed albedo,Sahara,-11.4244,72.0343
 KPCA,"Modeled albedo, m=3",Sahara A,1.1302,1.0003
-KPCA,"Modeled albedo, m=2",Sahara,0.9804,1.3244
-KPCA,"Modeled albedo, m=3",Sahara,1.3533,1.1932
-KPCA,"Modeled albedo, m=4",Sahara,1.8842,1.183
-KPCA,"Modeled albedo, m=5",Sahara,11.0559,23.178
+KPCA,"Modeled albedo, m=2",Sahara,1.4549,1.4546
+KPCA,"Modeled albedo, m=3",Sahara,1.6984,1.3601
+KPCA,"Modeled albedo, m=4",Sahara,1.8912,1.5915
+KPCA,"Modeled albedo, m=5",Sahara,4.0451,3.3526
