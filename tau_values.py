@@ -64,7 +64,7 @@ for idx, i in enumerate(scanline_nocloud1):
     surf_alb = po.polyval (wl[ind], poly_sa)
     surf_albedo1[idx, :] = surf_alb
 
-albedo_value = np.concatenate((surf_albedo, surf_albedo1), axis = 0)
+albedo_value =  np.concatenate((surf_albedo, surf_albedo1), axis = 0)
 print(albedo_value.shape)
 
 #Computing tau
@@ -81,9 +81,9 @@ mu_matrix1 = np.tile(mu1[:, np.newaxis], len(ind))
 mu_0_matrix1 = np.tile(mu_01[:, np.newaxis], len(ind))
 reflectance_matrix1 = africa1.variables['Reflectance'][0, scanline_nocloud1, 223, ind].data
 
-mu_value =np.concatenate((mu_matrix, mu_matrix1), axis = 0)
-mu_0_value = np.concatenate((mu_0_matrix, mu_0_matrix1), axis = 0)
-reflectance_value = np.concatenate((reflectance_matrix, reflectance_matrix1), axis = 0)
+mu_value =  np.concatenate((mu_matrix, mu_matrix1), axis = 0)
+mu_0_value =  np.concatenate((mu_0_matrix, mu_0_matrix1), axis = 0)
+reflectance_value =  np.concatenate((reflectance_matrix, reflectance_matrix1), axis = 0)
 angle_value = np.reciprocal(mu_value) + np.reciprocal(mu_0_value)
 tau_value = -np.log(reflectance_value/albedo_value)
 

@@ -4,5 +4,8 @@ env/
 __pycache__/
 *.ipynb_checkpoints/
 Data/
-
+.idea
 africaexample.ipynb
+..bfg-report
+\python_version
+get-pip.py
