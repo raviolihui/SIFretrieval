@@ -44,6 +44,6 @@ Performing a sensitivity analysis on the SIFTER's algorithm performance on retri
 
 #### Acknowledgements
 
-This repository was developed as part of a research project on remote sensing-based vegetation monitoring in the Amazon. For questions, contact the repository maintainer via GitHub Issues[1].
+This repository was developed as part of a research project on remote sensing-based vegetation monitoring in the Amazon. For questions, contact the repository maintainer via GitHub Issues.
 
   
