@@ -32,7 +32,7 @@ mean_spectrum = np.mean(tau_value, axis=0)
 tau_centered = tau_value - mean_spectrum
 tau_nan = np.isnan(tau_centered)
 print("Number of NaN values in tau_centered:", np.sum(tau_nan))
-pca = PCA(n_components=50, svd_solver='full').fit(tau_centered)
+pca = PCA(n_components=20, svd_solver='full').fit(tau_centered)
 components = pca.components_
 print(components.shape)
 
@@ -49,7 +49,7 @@ plt.tight_layout()
 #plt.savefig("PCA_tau")
 plt.close()
 
-print(f"Explained variance by 50 PCs: {np.sum(pca.explained_variance_ratio_):.2%}")
+print(f"Explained variance by 20 PCs: {np.sum(pca.explained_variance_ratio_):.2%}")
 
 tau_pca = pca.transform(tau_centered)  
 tau_reconstructed = pca.inverse_transform(tau_pca)  
@@ -142,18 +142,20 @@ for m in m_values:
             plt.xlabel("Wavelength (nm)")
             plt.ylabel("Reflectance")
             plt.legend()
-            plt.savefig("pic_PCA/PCA_fit_reflectance_m3_n50")
+            plt.savefig("pic_PCA/PCA_fit_reflectance_m3_n20")
             plt.close()
 
             b_fit = np.array(popt[m:n+m])
             attenuation_fit = np.dot(b_fit, f_matrix) 
             transmitance_modelled = np.exp(attenuation_fit)
+            print("transmitance_modelled", np.mean(transmitance_modelled))
+            print("surface albedo", np.mean(sum(popt[j] * wl[ind]**j for j in range(m+1))))
         
             plt.plot(wl[ind], transmitance_modelled, label="Modelled transmitance")
             plt.xlabel('Wavelength')
             plt.ylabel('Value')
             plt.legend(loc="best")
-            plt.savefig("pic_PCA/PCA_fit_transmitance_m3_n50")
+            plt.savefig("pic_PCA/PCA_fit_transmitance_m3_n20")
             plt.close()
 
             gaussian_full = np.exp(-0.5 * ((wl[ind] - 737) / 34) ** 2)
@@ -161,7 +163,7 @@ for m in m_values:
             plt.plot(wl[ind], popt[-1]*gaussian_full, color='green')
             plt.xlabel("Wavelength (nm)")
             plt.ylabel("SIF Amplitude - mW m⁻² sr⁻¹ nm⁻¹")
-            plt.savefig("pic_PCA/PCA_fit_SIF_m3_n50")
+            plt.savefig("pic_PCA/PCA_fit_SIF_m3_n20")
             plt.close()
 
             geom_factor = (1 / mu_matrix2[pixel_index]) / ((1 / mu_matrix2[pixel_index]) + (1 / mu_0_matrix2[pixel_index]))
@@ -173,7 +175,7 @@ for m in m_values:
             plt.xlabel("Wavelength (nm)")
             plt.ylabel("Value")
             plt.legend()
-            plt.savefig("pic_PCA/PCA_fit_baseline_n50")
+            plt.savefig("pic_PCA/PCA_fit_baseline_n20")
             plt.close()
       
     SIF_values_per_m[m] = SIF_values_per_scanline
@@ -187,7 +189,7 @@ for m in m_values:
             plt.xlabel("Scanline Index - Excluding error") 
             plt.ylabel("SIF Value - mW m⁻² sr⁻¹ nm⁻¹")
             plt.legend()
-            plt.savefig(f"pic_PCA/SIF_values_m_{m}_PCA_n50.png")
+            plt.savefig(f"pic_PCA/SIF_values_m_{m}_PCA_n20.png")
             plt.close()
             print(np.mean(SIF_values), m)
         else:
@@ -232,7 +234,7 @@ for pixel_index, i in enumerate(scanline_nocloud2):
         plt.plot(wl[ind], R_fit, label="Fitted Model Reflectance")
         plt.xlabel("Wavelength (nm)")
         plt.ylabel("Reflectance")
-        plt.savefig("pic_PCA/PCA_fit_reflectance_n50")
+        plt.savefig("pic_PCA/PCA_fit_reflectance_n20")
         plt.legend()
         plt.close()
         
@@ -245,7 +247,7 @@ for pixel_index, i in enumerate(scanline_nocloud2):
         plt.xlabel('Wavelength')
         plt.ylabel('Value')
         plt.legend(loc="best")
-        plt.savefig("pic_PCA/PCA_fit_transmitance_n50")
+        plt.savefig("pic_PCA/PCA_fit_transmitance_n20")
         plt.close()
         
         gaussian_full = np.exp(-0.5 * ((wl[ind] - 737) / 34) ** 2)
@@ -253,19 +255,19 @@ for pixel_index, i in enumerate(scanline_nocloud2):
         plt.plot(wl[ind], popt[-1]*gaussian_full, color='green')
         plt.xlabel("Wavelength (nm)")
         plt.ylabel("SIF Amplitude - mW m⁻² sr⁻¹ nm⁻¹")
-        plt.savefig("pic_PCA/PCA_fit_SIF_n50")
+        plt.savefig("pic_PCA/PCA_fit_SIF_n20")
         plt.close()
         
 plt.figure()
 plt.plot(SIF_values_per_scanline_A)
 plt.xlabel("Scanline Index - Excluding error") 
 plt.ylabel("SIF Value - mW m⁻² sr⁻¹ nm⁻¹")
-plt.savefig("pic_PCA/PCA_SIF_values_per_scanline_A_n50.png")
+plt.savefig("pic_PCA/PCA_SIF_values_per_scanline_A_n20.png")
 plt.close()
 print(np.mean(SIF_values_per_scanline_A))  
 
 
-output_dir = "PCA_SIF_values_n50"
+output_dir = "PCA_SIF_values_n20"
 os.makedirs(output_dir, exist_ok=True)
 for m, SIF_values in SIF_values_per_m.items():
     np.save(os.path.join(output_dir, f"SIF_values_m_{m}.npy"), SIF_values)

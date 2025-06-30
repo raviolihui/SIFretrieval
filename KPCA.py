@@ -133,9 +133,13 @@ for m in m_values:
 
             b_fit = np.array(popt[m:n+m])
             attenuation_fit = np.dot(b_fit, f_matrix)  
+            transmitance_modelled = np.exp(-attenuation_fit)
+
+            print("transmitance modelled:", np.mean(transmitance_modelled))
+            print("surface albedo:", np.mean(sum(popt[j] * wl[ind]**j for j in range(m+1))))
+
 
             plt.figure()
-            transmitance_modelled = np.exp(-attenuation_fit)
             plt.plot(wl[ind], transmitance_modelled, label="Modelled transmitance")
             plt.xlabel('Wavelength')
             plt.ylabel('Value')
@@ -152,8 +156,6 @@ for m in m_values:
             plt.ylabel("SIF Amplitude - mW m⁻² nm⁻¹")
             plt.savefig("pic_kpca/KPCA_fit_SIF_m2")
             plt.close()
-            print("surface albedo:", sum(popt[j] * wl[ind]**j for j in range(m+1)).shape, np.mean(sum(popt[j] * wl[ind]**j for j in range(m+1)), axis=0))
-
             
             geom_factor = (1 / mu_matrix2[100]) / ((1 / mu_matrix2[100]) + (1 / mu_0_matrix2[100]))
             baseline_fit = sum(popt[j] * wl[ind]**j for j in range(m+1)) * np.exp(-attenuation_fit)

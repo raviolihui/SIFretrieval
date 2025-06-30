@@ -129,9 +129,11 @@ for m in m_values:
 
             b_fit = np.array(popt[m:n+m])
             attenuation_fit = np.dot(b_fit, f_matrix)  
-
-            plt.figure()
             transmitance_modelled = np.exp(-attenuation_fit)
+
+            print("surface albedo:", np.mean(sum(popt[j] * wl[ind]**j for j in range(m+1))))
+            print("transmittance:",np.mean(transmitance_modelled))
+            plt.figure()
             plt.plot(wl[ind], transmitance_modelled, label="Modelled transmitance")
             plt.xlabel('Wavelength')
             plt.ylabel('Value')
